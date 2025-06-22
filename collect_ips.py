@@ -2,43 +2,42 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import os
+from datetime import datetime
 
 # 目标URL列表
-urls = ['https://api.uouin.com/cloudflare.html', 
-        'https://ip.164746.xyz'
-        ]
+urls = [
+    'https://api.uouin.com/cloudflare.html',
+    'https://ip.164746.xyz'
+]
 
-# 正则表达式用于匹配IP地址
-ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+# 正则：匹配IP
+ip_pattern = r'\b\d{1,3}(?:\.\d{1,3}){3}\b'
+ip_set = set()  # 用于去重
 
-# 检查ip.txt文件是否存在,如果存在则删除它
-if os.path.exists('ip.txt'):
-    os.remove('ip.txt')
-
-# 创建一个文件来存储IP地址
-with open('ip.txt', 'w') as file:
-    for url in urls:
-        # 发送HTTP请求获取网页内容
-        response = requests.get(url)
-        
-        # 使用BeautifulSoup解析HTML
+for url in urls:
+    try:
+        response = requests.get(url, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 根据网站的不同结构找到包含IP地址的元素
-        if url == 'https://api.uouin.com/cloudflare.html':
-            elements = soup.find_all('tr')
-        elif url == 'https://ip.164746.xyz':
+
+        if url in ['https://api.uouin.com/cloudflare.html', 'https://ip.164746.xyz']:
             elements = soup.find_all('tr')
         else:
             elements = soup.find_all('li')
-        
-        # 遍历所有元素,查找IP地址
-        for element in elements:
-            element_text = element.get_text()
-            ip_matches = re.findall(ip_pattern, element_text)
-            
-            # 如果找到IP地址,则写入文件
-            for ip in ip_matches:
-                file.write(ip + '\n')
 
-print('IP地址已保存到ip.txt文件中。')
+        for element in elements:
+            text = element.get_text()
+            ip_matches = re.findall(ip_pattern, text)
+            ip_set.update(ip_matches)
+
+    except Exception as e:
+        print(f"⚠ 请求或解析失败: {url} - {e}")
+
+# 排序，写入文件
+sorted_ips = sorted(ip_set)
+
+with open('ip.txt', 'w', encoding='utf-8') as f:
+    for ip in sorted_ips:
+        f.write(ip + '\n')
+    f.write(f"# 更新时间: {datetime.now()}\n")
+
+print(f"✅ 收集到 {len(sorted_ips)} 个 IP，已写入 ip.txt")
