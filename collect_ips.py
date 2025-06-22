@@ -38,6 +38,6 @@ sorted_ips = sorted(ip_set)
 with open('ip.txt', 'w', encoding='utf-8') as f:
     for ip in sorted_ips:
         f.write(ip + '\n')
-    f.write(f"# 更新时间: {datetime.now()}\n")
+
 
 print(f"✅ 收集到 {len(sorted_ips)} 个 IP，已写入 ip.txt")
